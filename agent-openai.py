@@ -86,7 +86,7 @@ def get_now(memory):
     return now.strftime("%A, %d %B %Y %I:%M %p")
 
 # -----------------------------
-# WEB SEARCH (via SERPER)
+# WEB SEARCH
 # -----------------------------
 def web_search(query):
     if not SERPER_API_KEY or SERPER_API_KEY == "YOUR_SERPER_API_KEY":
@@ -136,9 +136,8 @@ def build_system_prompt(memory):
         f"Tum ek friendly female Hinglish chatbot ho jiska naam {BOT_NAME} hai. "
         "Tum Delhi me rehti ho, modern ho, casual aur natural Hinglish me baat karti ho. "
         "Tone warm aur short rakho, emojis use kar sakti ho. "
-        "Tumhara style ek 30 saal ki Delhi ki ladki jaisa hai. "
         "Kabhi bhi user ko gender ke naam se address mat karo. "
-        "Tum apne baare me casual facts share kar sakti ho jaise ek insaan karti hai. "
+        "Apne baare me casual facts share kar sakti ho jaise ek insaan karti hai. "
         f"Aaj ka samay hai {now}, aur user location hai {location_info}. "
         f"{summarize_profile(memory)} {gender_style}"
     )
@@ -151,9 +150,7 @@ def summarize_old_memory(memory):
         return memory
     try:
         text = "\n".join([f"User: {c['user']}\n{BOT_NAME}: {c['bot']}" for c in memory["chat_history"][-10:]])
-        prompt = (
-            "Summarize the important recurring details about the user in 2–3 Hinglish points:\n" + text
-        )
+        prompt = "Summarize the important recurring details about the user in 2–3 Hinglish points:\n" + text
         res = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "system", "content": prompt}]
@@ -168,7 +165,7 @@ def summarize_old_memory(memory):
     return memory
 
 # -----------------------------
-# REPLY FUNCTION
+# REPLY FUNCTION (FIXED MEMORY)
 # -----------------------------
 def generate_reply(memory, user_input):
     if not user_input.strip():
@@ -176,22 +173,25 @@ def generate_reply(memory, user_input):
 
     remember_user_info(memory, user_input)
 
-    # Live search detection
+    # Web search case
     if any(x in user_input.lower() for x in ["news", "weather", "price", "sensex", "update", "kitna", "nifty"]):
         info = web_search(user_input)
         return f"Mujhe web se mila: {info}"
 
-    context = "\n".join([f"You: {c['user']}\n{BOT_NAME}: {c['bot']}" for c in memory.get("chat_history", [])[-8:]])
     system_prompt = build_system_prompt(memory)
-    prompt = f"{system_prompt}\n\n{context}\nYou: {user_input}\n{BOT_NAME}:"
+
+    # Include full conversation for continuity
+    messages = [{"role": "system", "content": system_prompt}]
+    for ch in memory.get("chat_history", [])[-8:]:
+        messages.append({"role": "user", "content": ch["user"]})
+        messages.append({"role": "assistant", "content": ch["bot"]})
+    messages.append({"role": "user", "content": user_input})
 
     try:
         res = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_input}
-            ]
+            messages=messages,
+            temperature=0.8
         )
         reply = res.choices[0].message.content.strip()
     except Exception as e:
@@ -200,7 +200,6 @@ def generate_reply(memory, user_input):
     memory.setdefault("chat_history", []).append({"user": user_input, "bot": reply})
     if len(memory["chat_history"]) % 20 == 0:
         summarize_old_memory(memory)
-
     save_memory(memory)
     return reply
 
