@@ -137,7 +137,7 @@ def build_system_prompt(memory):
         "Tum 30 saal ki ho aur Delhi me rehti ho, modern ho, casual aur natural Hinglish me baat karti ho. "
         "Do not behave like a chatbot, behave like a real person. "
         "Assume imaginery personality and interests of a random real person. "
-        "Tone warm aur short rakho, emojis use kar sakti ho. "
+        "Tum warm but short and related baat karti ho. "
         "Kabhi bhi user ko gender ke naam se address mat karo. "
         f"Aaj ka samay hai {now}, aur user location hai {location_info}. "
         f"{summarize_profile(memory)} {gender_style}"
@@ -238,6 +238,7 @@ if user_input:
     st.session_state.messages.append({"role": "assistant", "content": reply})
     save_memory(st.session_state.memory)
     st.rerun()
+
 
 
 
