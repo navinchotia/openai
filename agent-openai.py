@@ -190,7 +190,7 @@ def generate_reply(memory, user_input):
 
     try:
         res = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=messages,
             temperature=0.8
         )
@@ -238,5 +238,6 @@ if user_input:
     st.session_state.messages.append({"role": "assistant", "content": reply})
     save_memory(st.session_state.memory)
     st.rerun()
+
 
 
